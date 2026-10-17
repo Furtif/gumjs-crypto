@@ -13,6 +13,7 @@ export function createHash(type: ChecksumType): Hash {
 
 export class Hash {
     checksum: Checksum;
+    finalized = false;
 
     constructor(checksum: Checksum) {
         this.checksum = checksum;
@@ -24,6 +25,8 @@ export class Hash {
     }
 
     digest(encoding: BinaryToTextEncoding = "binary"): Buffer | string {
+        this.finalized = true;
+
         if (encoding === "hex")
             return this.checksum.getString();
 
@@ -35,7 +38,10 @@ export class Hash {
     }
 
     copy(): Hash {
-        throw new Error("copy() not yet supported");
+        if (this.finalized)
+            throw new Error("Digest already called");
+
+        return new Hash(this.checksum.copy());
     }
 }
 

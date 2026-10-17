@@ -85,6 +85,51 @@ describe("createHash", () => {
         expect(() => crypto.createHash("sha512").update("BOOM", "hex")).toThrow();
         expect(() => crypto.createHash("sha512").update("glam", "hex")).toThrow();
     });
+
+    test("copy has the same digest as the original", () => {
+        expect(helloSha512().copy().digest("hex")).toBe(helloWorldSha);
+    });
+
+    test("digesting a copy leaves the original usable", () => {
+        const hash = helloSha512();
+        hash.copy().digest();
+        expect(hash.digest("hex")).toBe(helloWorldSha);
+    });
+
+    test("digesting the original leaves a copy usable", () => {
+        const hash = helloSha512();
+        const copy = hash.copy();
+        hash.digest();
+        expect(copy.digest("hex")).toBe(helloWorldSha);
+    });
+
+    test("copy continues from the original's state", () => {
+        const copy = crypto.createHash("sha512").update("hello").copy();
+        expect(copy.update(" world").digest("hex")).toBe(helloWorldSha);
+    });
+
+    test("updating a copy does not affect the original", () => {
+        const hash = helloSha512();
+        hash.copy().update("!");
+        expect(hash.digest("hex")).toBe(helloWorldSha);
+    });
+
+    test("updating the original does not affect a copy", () => {
+        const hash = helloSha512();
+        const copy = hash.copy();
+        hash.update("!");
+        expect(copy.digest("hex")).toBe(helloWorldSha);
+    });
+
+    test("copy of a copy", () => {
+        expect(helloSha512().copy().copy().digest("hex")).toBe(helloWorldSha);
+    });
+
+    test("copy after digest throws", () => {
+        const hash = helloSha512();
+        hash.digest();
+        expect(() => hash.copy()).toThrow();
+    });
 });
 
 describe("randomBytes", () => {
