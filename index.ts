@@ -15,18 +15,8 @@ export class Hash {
         this.checksum = checksum;
     }
 
-    update(data: string | Buffer | DataView, inputEncoding?: string): Hash {
-        // TODO: TypedArray
-        if (data instanceof DataView)
-            throw new Error("DataView not yet supported");
-        if (inputEncoding !== undefined)
-            throw new Error("inputEncoding not yet supported");
-
-        if (Buffer.isBuffer(data))
-            this.checksum.update(data.buffer as ArrayBuffer);
-        else
-            this.checksum.update(data);
-
+    update(data: string | ArrayBufferView, inputEncoding?: BufferEncoding): Hash {
+        this.checksum.update(toChecksumData(data, inputEncoding));
         return this;
     }
 
@@ -44,6 +34,20 @@ export class Hash {
     copy(): Hash {
         throw new Error("copy() not yet supported");
     }
+}
+
+function toChecksumData(data: string | ArrayBufferView, inputEncoding?: BufferEncoding): string | ArrayBuffer {
+    if (typeof data !== "string")
+        return viewToArrayBuffer(data);
+
+    if (inputEncoding === undefined)
+        return data;
+
+    return viewToArrayBuffer(Buffer.from(data, inputEncoding));
+}
+
+function viewToArrayBuffer(view: ArrayBufferView): ArrayBuffer {
+    return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer;
 }
 
 type BinaryToTextEncoding = "binary" | "base64" | "base64url" | "hex";
