@@ -71,3 +71,78 @@ describe("createHash", () => {
         expect(hash.digest("hex")).toBe(helloWorldSha);
     });
 });
+
+describe("randomBytes", () => {
+    test("returns a Buffer of the requested size", () => {
+        const bytes = crypto.randomBytes(16);
+        expect(bytes instanceof Buffer).toBeTruthy();
+        expect(bytes.length).toBe(16);
+    });
+
+    test("returns different bytes on each call", () => {
+        const a = crypto.randomBytes(32).toString("hex");
+        const b = crypto.randomBytes(32).toString("hex");
+        expect(a).not.toBe(b);
+    });
+
+    test("delivers the bytes to a callback asynchronously", async () => {
+        let delivered = false;
+        const bytes = await new Promise<Buffer>(resolve => {
+            crypto.randomBytes(16, (error, buf) => {
+                delivered = true;
+                resolve(buf);
+            });
+            expect(delivered).toBe(false);
+        });
+        expect(bytes.length).toBe(16);
+    });
+});
+
+describe("randomFillSync", () => {
+    test("fills the whole buffer and returns it", () => {
+        const buffer = Buffer.alloc(32);
+        expect(crypto.randomFillSync(buffer)).toBe(buffer);
+        expect(isZeroed(buffer)).toBe(false);
+    });
+
+    test("fills only the requested range", () => {
+        const buffer = Buffer.alloc(32);
+        crypto.randomFillSync(buffer, 8, 16);
+        expect(isZeroed(buffer.subarray(0, 8))).toBe(true);
+        expect(isZeroed(buffer.subarray(8, 24))).toBe(false);
+        expect(isZeroed(buffer.subarray(24))).toBe(true);
+    });
+
+    test("fills a DataView", () => {
+        const view = new DataView(new ArrayBuffer(32));
+        crypto.randomFillSync(view);
+        expect(isZeroed(new Uint8Array(view.buffer))).toBe(false);
+    });
+
+    test("fills a view into a larger buffer", () => {
+        const backing = new Uint8Array(32);
+        crypto.randomFillSync(new Uint8Array(backing.buffer, 8, 16));
+        expect(isZeroed(backing.subarray(0, 8))).toBe(true);
+        expect(isZeroed(backing.subarray(8, 24))).toBe(false);
+        expect(isZeroed(backing.subarray(24))).toBe(true);
+    });
+});
+
+describe("getRandomValues", () => {
+    test("fills the array and returns it", () => {
+        const array = new Uint8Array(32);
+        expect(crypto.getRandomValues(array)).toBe(array);
+        expect(isZeroed(array)).toBe(false);
+    });
+
+    test("fills every byte of a wider typed array", () => {
+        const array = new Uint32Array(16);
+        crypto.getRandomValues(array);
+        expect(isZeroed(new Uint8Array(array.buffer, 0, 32))).toBe(false);
+        expect(isZeroed(new Uint8Array(array.buffer, 32))).toBe(false);
+    });
+});
+
+function isZeroed(bytes: Uint8Array) {
+    return bytes.every(b => b === 0);
+}
